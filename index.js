@@ -7,7 +7,7 @@ const app = express();
 app.use(bodyParser.json());
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: "credentials.json",
+  credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
   scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
@@ -64,7 +64,7 @@ async function updateConversionTime(sheetUrl, gclid, saleDate) {
       },
     });
 
-    return { success: true, gclid, newValue: saleDate};
+    return { success: true, gclid, newValue: saleDate };
   } catch (err) {
     return { success: false, gclid, error: err.message };
   }
@@ -105,5 +105,5 @@ app.post("/webhook", async (req, res) => {
   res.json({ results });
 });
 
-
-app.listen(3000, () => console.log("🚀 Webhook rodando na porta 3000"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Webhook rodando na porta ${PORT}`));
