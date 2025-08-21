@@ -1,7 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
 import { google } from "googleapis";
-import fetch from "node-fetch"; // se estiver em Node >=18 pode usar fetch nativo
 
 const app = express();
 app.use(bodyParser.json());
