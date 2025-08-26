@@ -89,7 +89,7 @@ app.post("/webhook", async (req, res) => {
 
   try {
     await fetch(
-      "https://n8n.beimpulse-flow.com/webhook-test/e60008ca-31bf-48f1-a41c-6d2614eef23d",
+      "https://webhook.beimpulse-flow.com/webhook/e60008ca-31bf-48f1-a41c-6d2614eef23d",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
