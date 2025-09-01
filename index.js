@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import bodyParser from "body-parser";
 import { google } from "googleapis";
@@ -15,57 +16,61 @@ const sheets = google.sheets({ version: "v4", auth });
 // Função que atualiza o Conversion Time de um gclid específico
 async function updateConversionTime(sheetUrl, gclid, saleDate) {
   try {
+    // Extrair Spreadsheet ID
     const regex = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/;
     const match = sheetUrl.match(regex);
     if (!match) throw new Error("Spreadsheet ID não encontrado.");
     const spreadsheetId = match[1];
 
-    const range = "GCLID compra _RESULTS!A7:Z"; // dados começam na linha 7
+    // Buscar dados da aba
+    const range = "GCLID compra _RESULTS!A7:Z";
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range,
     });
 
     const rows = response.data.values;
-    if (!rows || rows.length === 0) {
+    if (!rows || rows.length === 0)
       throw new Error("Nenhum dado encontrado na planilha.");
-    }
 
     const header = rows[0];
     const gclidCol = header.indexOf("Google Click ID");
     const conversionTimeCol = header.indexOf("Conversion Time");
 
-    if (gclidCol === -1 || conversionTimeCol === -1) {
+    if (gclidCol === -1 || conversionTimeCol === -1)
       throw new Error("Colunas necessárias não encontradas.");
-    }
 
-    let rowIndex = -1;
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i][gclidCol] === gclid) {
-        rowIndex = i;
-        break;
-      }
-    }
+    // Procurar a linha correta
+    const rowIndex = rows.findIndex((row) => row[gclidCol] === gclid);
+    if (rowIndex === -1) throw new Error(`gclid ${gclid} não encontrado.`);
 
-    if (rowIndex === -1) {
-      throw new Error(`gclid ${gclid} não encontrado.`);
-    }
+    const sheetRow = 7 + rowIndex; // linha real na planilha
+    const columnLetter = String.fromCharCode(65 + conversionTimeCol);
+    const cell = `${columnLetter}${sheetRow}`;
 
-    const sheetRow = 7 + rowIndex;
-    const cell = `C${sheetRow}`; // coluna Conversion Time
+    console.log("📌 Atualizando planilha:", spreadsheetId);
+    console.log("➡️ Célula:", cell, "Novo valor:", saleDate);
 
+    // Atualizar a célula
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `GCLID compra _RESULTS!${cell}`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [[saleDate]],
+        values: [[`${saleDate}`]],
       },
     });
 
-    return { success: true, gclid, newValue: saleDate };
+    // Ler o valor real da célula após atualização
+    const updatedCell = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `GCLID compra _RESULTS!${cell}`,
+    });
+    const realValue = updatedCell.data.values?.[0]?.[0] || null;
+
+    return { success: true, gclid, newValue: realValue };
   } catch (err) {
-    return { success: false, gclid, error: err.message };
+    return { success: false, gclid, error: err.message, newValue: null };
   }
 }
 
