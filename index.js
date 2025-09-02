@@ -55,11 +55,11 @@ function normalizeDate(input) {
 
   if (!date || isNaN(date)) return "";
 
-  // ⚠️ Aqui trocamos para MM/dd/yyyy HH:mm:ss
+  // Formatador fixo em dd/MM/yyyy HH:mm:ss
   return (
-    pad(date.getMonth() + 1) + // MM
+    pad(date.getDate()) +
     "/" +
-    pad(date.getDate()) +      // dd
+    pad(date.getMonth() + 1) +
     "/" +
     date.getFullYear() +
     " " +
@@ -70,7 +70,6 @@ function normalizeDate(input) {
     pad(date.getSeconds())
   );
 }
-
 
 
 // Função que atualiza o Conversion Time de um gclid específico
