@@ -13,6 +13,66 @@ const auth = new google.auth.GoogleAuth({
 
 const sheets = google.sheets({ version: "v4", auth });
 
+/**
+ * Normaliza qualquer tipo de entrada de data para o formato aceito pelo Google Sheets.
+ * Retorna sempre uma string "MM/dd/yyyy".
+ */
+function pad(n) {
+  return n < 10 ? "0" + n : n;
+}
+
+function normalizeDate(input) {
+  if (!input) return "";
+
+  let date;
+
+  // Caso já seja Date
+  if (input instanceof Date && !isNaN(input)) {
+    date = input;
+  }
+
+  // Caso seja número (timestamp ou serial)
+  else if (typeof input === "number") {
+    if (input > 10000000000) {
+      // timestamp em ms
+      date = new Date(input);
+    } else {
+      // número serial do Excel (dias desde 1899-12-30)
+      const excelEpoch = new Date(1899, 11, 30);
+      date = new Date(excelEpoch.getTime() + input * 86400000);
+    }
+  }
+
+  // Caso seja string
+  else if (typeof input === "string") {
+    const d = new Date(input);
+    if (!isNaN(d)) {
+      date = d;
+    } else {
+      return input; // já está formatado?
+    }
+  }
+
+  if (!date || isNaN(date)) return "";
+
+  // ⚠️ Aqui trocamos para MM/dd/yyyy HH:mm:ss
+  return (
+    pad(date.getMonth() + 1) + // MM
+    "/" +
+    pad(date.getDate()) +      // dd
+    "/" +
+    date.getFullYear() +
+    " " +
+    pad(date.getHours()) +
+    ":" +
+    pad(date.getMinutes()) +
+    ":" +
+    pad(date.getSeconds())
+  );
+}
+
+
+
 // Função que atualiza o Conversion Time de um gclid específico
 async function updateConversionTime(sheetUrl, gclid, saleDate) {
   try {
@@ -48,8 +108,11 @@ async function updateConversionTime(sheetUrl, gclid, saleDate) {
     const columnLetter = String.fromCharCode(65 + conversionTimeCol);
     const cell = `${columnLetter}${sheetRow}`;
 
+    // Normalizar a data recebida
+    const formattedDate = normalizeDate(saleDate);
+
     console.log("📌 Atualizando planilha:", spreadsheetId);
-    console.log("➡️ Célula:", cell, "Novo valor:", saleDate);
+    console.log("➡️ Célula:", cell, "Novo valor:", formattedDate);
 
     // Atualizar a célula
     await sheets.spreadsheets.values.update({
@@ -57,7 +120,7 @@ async function updateConversionTime(sheetUrl, gclid, saleDate) {
       range: `GCLID compra _RESULTS!${cell}`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [[`${saleDate}`]],
+        values: [[formattedDate]],
       },
     });
 
